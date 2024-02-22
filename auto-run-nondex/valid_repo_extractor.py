@@ -25,7 +25,7 @@ def extract_org_repos_with_pom_file():
     repos = soup.find_all('a', class_='d-inline-block', href=True)
     while len(repos) > 3:
         for repo in repos:
-            if repo.has_attr('data-hovercard-type') and repo.get('data-hovercard-type') == 'repository':
+            if repo.get('data-hovercard-type') == 'repository':
                 if REPO_URL_PREFIX + repo['href'] in EXISTING_REPO_URL_SET:
                     # print('Repetitive repo: ' + REPO_URL_PREFIX + repo['href'])
                     continue
@@ -46,7 +46,7 @@ def extract_personal_repos_with_pom_file():
     repos = soup.find_all('h3', class_='wb-break-all')
     try:
         next_page = soup.find('div', class_='paginate-container').contents[1].contents[1].attrs.get('href')
-    except Exception as e:
+    except Exception:
         next_page = None
 
     while repos or next_page:
@@ -64,7 +64,7 @@ def extract_personal_repos_with_pom_file():
             repos = soup.find_all('h3', class_='wb-break-all')
             try:
                 next_page = soup.find('div', class_='paginate-container').contents[1].contents[1].attrs.get('href')
-            except Exception as e:
+            except Exception:
                 next_page = None
         else:
             break
