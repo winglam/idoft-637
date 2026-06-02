@@ -7,10 +7,14 @@ from common_checks import (
     check_common_rules,
     check_row_length,
     check_sort,
+    check_empty_lines,
     run_checks,
     check_duplication
 )
 
+
+# URL pattern used in Notes validation
+url_pattern = r"https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}"
 
 # Contains information and regexes unique to pr-data.csv and gr-data.csv files
 data = {
@@ -53,7 +57,9 @@ data = {
         "Deleted",
         "Rejected",
         "Skipped",
+        "Irreproducible",
         "MovedOrRenamed",
+        "RepoRenamed",
         "Claimed",
         "MovedToGradle",
         "FixedOrder",
@@ -62,9 +68,9 @@ data = {
     "PR Link": re.compile(
         r"((https:\/\/github.com\/((\w|\.|-)+\/)+)(pull\/\d+))"
     ),
-    "Notes": re.compile(
-        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})"
-    ),
+    "URL Base": re.compile(url_pattern),
+    "Notes": re.compile(rf"({url_pattern})(;.*)?"),
+    "Notes URL with Text": re.compile(rf"({url_pattern})\s+.+"),
 }
 
 
@@ -104,7 +110,7 @@ def check_status_consistency(filename, row, i, log):
         else:
             check_pr_link(filename, row, i, log)
 
-    if row["Status"] in ["InspiredAFix", "Skipped", "MovedOrRenamed", "Deprecated", "Deleted", "DeveloperFixed"]:
+    if row["Status"] in ["InspiredAFix", "Skipped", "MovedOrRenamed", "Deprecated", "Deleted", "DeveloperFixed", "RepoRenamed", "Irreproducible"]:
 
         # Should contain a note
         if row["Notes"] == "":
@@ -117,12 +123,14 @@ def check_status_consistency(filename, row, i, log):
                     "Status " + row["Status"] + " should contain a note",
                 )
             # error if no note:
-            if row["Status"] in ["MovedOrRenamed", "Deleted", "DeveloperFixed"]:
+            if row["Status"] in ["MovedOrRenamed", "Deleted", "DeveloperFixed", "RepoRenamed", "Irreproducible"]:
                 log_std_error(filename, log, i, row, "Notes")
 
         # If it contains a note, it should be a valid link
         else:
-            check_notes(filename, row, i, log)
+            # RepoRenamed, Irreproducible notes can be free text
+            if row["Status"] not in ["RepoRenamed", "Irreproducible"]:
+                check_notes(filename, row, i, log)
 
         # Should contain a PR Link
         if row["Status"] == "InspiredAFix":
@@ -147,7 +155,11 @@ def check_notes(filename, row, i, log):
     """Checks validity of Notes."""
 
     if not data["Notes"].fullmatch(row["Notes"]):
-        log_std_error(filename, log, i, row, "Notes")
+        # Check if it's a URL followed by text without semicolon
+        if data["Notes URL with Text"].fullmatch(row["Notes"]):
+            log_std_error(filename, log, i, row, "Notes", "URL and additional text must be separated by semicolon (ex: 'URL; description')")
+        else:
+            log_std_error(filename, log, i, row, "Notes")
 
 
 def check_forked_project(filename, row, i, log):
@@ -191,7 +203,17 @@ def run_checks_pr(filename, log, commit_range):
         check_status_consistency,
         check_forked_project,
         check_tab,
+        check_empty_lines
     ]
-    run_checks(filename, data, log, commit_range, checks)
+    if filename == "py-data.csv":
+        # deepcopy, then change the column name
+        import copy
+
+        py_data = copy.deepcopy(data)
+        py_data["columns"][3] = "Pytest Test Name (PathToFile::TestClass::TestMethod or PathToFile::TestMethod)"
+        py_data["columns"].remove("Module Path")
+        run_checks(filename, py_data, log, commit_range, checks)
+    else:
+        run_checks(filename, data, log, commit_range, checks)
     check_sort(filename, log)
     check_duplication(filename, log)

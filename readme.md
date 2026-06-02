@@ -127,6 +127,7 @@ NDOD | Non-Deterministic Order-Dependent tests that fail non-deterministically b
 NDOI | Non-Deterministic Order-Independent tests that fail non-deterministically but similar failure rates in all orders as defined in our [ISSRE’20 work](http://mir.cs.illinois.edu/winglam/publications/2020/LamETAL20ISSRE.pdf)
 UD | Unknown Dependency tests that pass and fail in a test suite or in isolation
 OSD | Operating System Dependent tests that pass and fail depending on the operating system
+TD | Time-Dependent flaky tests as defined in [FlakeSync](https://utexas.box.com/v/august-shi-ICSE2024)
 TZD | Tests that fail in machines on different time zones, usually failing time-related assertions 
  
 * **Status**: This defines the state the flaky test is in. Only one status may be used at any given time for each flaky test. The accepted status values are:
@@ -141,7 +142,9 @@ DeveloperWontFix | For tests where developers claimed that they do not want a fi
 DeveloperFixed | For tests where a developer fixed the tests before a PR was made
 Deleted | For tests that can no longer be fixed as the tests have been removed from the repository after the tests were detected
 Rejected | For tests where a PR was rejected/closed as the developers did not think a fix was necessary
+RepoRenamed | For tests where the repository has been renamed. Add this status to the row containing the old repository name, and include a [Note](#adding-notes) explaining what the repository has been renamed to.
 Skipped | For test which was inspected and should not be fixed (e.g., test is annotated with @Ignore). To use this status, please provide some [Notes](#adding-notes) on why the test should be skipped
+Irreproducible | For tests that cannot be reproduced or rerun. Add this status to the row corresponding to the affected test, and include a short [Note](#adding-notes) indicating that the test result could not be reproduced.
 MovedOrRenamed | For test that has a different fully-qualified name on two different shas. This status should be added only to the row with the older sha. To use this status, please also provide some [Notes](#adding-notes) on what the test is renamed to
 RepoArchived | For test that is in an archived repo, which is indicated by GitHub in messages such as "This repository has been archived by the owner. It is now read-only."
 Deprecated | For test that is in a deprecated repository, which is usually indicated in the project README or description as "Deprecated" or a similar message. To use this status, please also provide some [Notes](#adding-notes) that contain a link to the commit that marks the repository as deprecated. 
